@@ -1,11 +1,10 @@
 name: Analyze with CodeGuru Reviewer666
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
+on: 
+ - push
+ - workflow_dispatch # This allows manual triggering of the action through the GitHub UI.
+ - pull_request
+  
 permissions:
     id-token: write
     contents: read
