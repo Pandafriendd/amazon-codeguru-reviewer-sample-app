@@ -1,0 +1,44 @@
+name: Analyze with CodeGuru Reviewer
+
+on: 
+ - push:
+     branches: [ main ]
+ - workflow_dispatch # This allows manual triggering of the action through the GitHub UI.
+ - pull_request:
+     branches: [ main ]
+
+permissions:
+    id-token: write
+    contents: read
+    security-events: write 
+
+jobs:
+  build:
+    name: Analyze with CodeGuru Reviewer
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Amazon CodeGuru Reviewer
+      uses: aws-actions/codeguru-reviewer@v1.1
+      if: ${{ always() }}
+      with:          
+
+        # build_path: . # build artifact(s) directory
+        s3_bucket: codeguru-reviewer-mybucketnewpandafriend666
+      env:
+        AWS_DEFAULT_REGION: us-east-2
+        AWS_REGION: us-east-2
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      
+
+    - name: Upload review result
+      if: ${{ github.event_name != 'push' }}
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: codeguru-results.sarif.json
