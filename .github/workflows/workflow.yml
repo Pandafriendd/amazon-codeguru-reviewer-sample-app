@@ -1,10 +1,8 @@
-name: Analyze with CodeGuru Reviewer666
+name: Analyze with CodeGuru Reviewer
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: 
+ - push
+ - workflow_dispatch # This allows manual triggering of the action through the GitHub UI.
 
 permissions:
     id-token: write
@@ -16,16 +14,27 @@ jobs:
     name: Analyze with CodeGuru Reviewer
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    
+    - uses: actions/checkout@v2
+      if: steps.iam-role.outcome == 'success'
       with:
         fetch-depth: 0
+        
+    - name: Set up JDK 1.8
+      if: steps.iam-role.outcome == 'success'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+        
+    - name: Build project
+      if: steps.iam-role.outcome == 'success'
+      run: mvn compile -DskipTests
 
-    - name: Amazon CodeGuru Reviewer
+    - name: CodeGuru Reviewer
       uses: aws-actions/codeguru-reviewer@v1.1
-      if: ${{ always() }}
+      if: steps.iam-role.outcome == 'success'
+      continue-on-error: false
       with:          
-
         # build_path: . # build artifact(s) directory
         s3_bucket: codeguru-reviewer-mybucketnewpandafriend666
       env:
@@ -34,10 +43,16 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      
+
+    - name: Store SARIF file
+      if: steps.iam-role.outcome == 'success'
+      uses: actions/upload-artifact@v2
+      with:
+        name: SARIF_recommendations
+        path: ./codeguru-results.sarif.json
 
     - name: Upload review result
-      if: ${{ github.event_name != 'push' }}
+      if: steps.iam-role.outcome == 'success'
       uses: github/codeql-action/upload-sarif@v1
       with:
         sarif_file: codeguru-results.sarif.json
